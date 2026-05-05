@@ -68,6 +68,18 @@ body {
   .score-decline { color: #ef4444; }
 }
 
+/* White calendar/date picker icons on dark background */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.5);
+  cursor: pointer;
+  opacity: 0.7;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

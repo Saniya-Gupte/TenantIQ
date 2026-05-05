@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runAllAgents } from '@/lib/agents';
+import { runAllVerifications } from '@/lib/verifications';
 import { getServiceSupabase } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
@@ -37,13 +38,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const agentResults = await runAllAgents(appData);
+    // Run external verifications in parallel (graceful — never throws)
+    let verifications = null;
+    try {
+      verifications = await runAllVerifications(appData);
+    } catch {
+      // verifications remain null; agents still run without them
+    }
+
+    const agentResults = await runAllAgents(appData, verifications);
 
     if (supabaseAvailable && supabase) {
       await supabase
         .from('applications')
         .update({
-          agent_results: agentResults,
+          agent_results: { ...agentResults, verifications },
           overall_score: agentResults.finalScore,
           recommendation: agentResults.screeningReport.recommendation,
           status: 'complete',
@@ -53,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       id: applicationId,
-      agentResults,
+      agentResults: { ...agentResults, verifications },
       overallScore: agentResults.finalScore,
       recommendation: agentResults.screeningReport.recommendation,
       applicantName: appData.fullName,

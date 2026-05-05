@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, ChevronRight, ChevronLeft, User, Home, Briefcase, CreditCard, Loader2, AlertCircle } from 'lucide-react';
+import { Shield, ChevronRight, ChevronLeft, User, Home, Briefcase, CreditCard, Loader2, AlertCircle, X } from 'lucide-react';
 import Link from 'next/link';
 
 const STEPS = ['Personal Info', 'Rental History', 'Employment & Income', 'Financial History'];
@@ -109,8 +109,14 @@ function Step1({ form, update }: { form: FormData; update: (k: keyof FormData, v
           <Input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(555) 555-5555" required />
         </div>
         <div>
-          <Label>Date of Birth *</Label>
-          <Input type="date" value={form.dateOfBirth} onChange={e => update('dateOfBirth', e.target.value)} required />
+          <Label>Date of Birth * (must be 18+)</Label>
+          <Input
+            type="date"
+            value={form.dateOfBirth}
+            onChange={e => update('dateOfBirth', e.target.value)}
+            max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+            required
+          />
         </div>
         <div>
           <Label>Government ID Type</Label>
@@ -324,8 +330,26 @@ export default function ApplyPage() {
     setForm(prev => ({ ...prev, [key]: value }));
   }
 
+  function getAge(dob: string): number {
+    if (!dob) return 0;
+    const birth = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+  }
+
   function validateStep(): boolean {
-    if (step === 0) return !!(form.fullName && form.email && form.phone && form.dateOfBirth);
+    setError('');
+    if (step === 0) {
+      if (!(form.fullName && form.email && form.phone && form.dateOfBirth)) return false;
+      if (getAge(form.dateOfBirth) < 18) {
+        setError('Applicant must be at least 18 years old to apply.');
+        return false;
+      }
+      return true;
+    }
     if (step === 1) return !!(form.currentAddress && form.timeAtCurrentAddress && form.reasonForMoving);
     if (step === 2) return !!(form.employmentStatus && form.monthlyGrossIncome);
     if (step === 3) return !!(form.creditScoreRange && form.numberOfOccupants && form.desiredMoveInDate);
@@ -334,7 +358,7 @@ export default function ApplyPage() {
 
   async function handleSubmit() {
     if (!validateStep()) {
-      setError('Please fill in all required fields.');
+      if (!error) setError('Please fill in all required fields.');
       return;
     }
     setError('');
@@ -354,7 +378,7 @@ export default function ApplyPage() {
 
   function next() {
     if (!validateStep()) {
-      setError('Please fill in all required fields.');
+      if (!error) setError('Please fill in all required fields.');
       return;
     }
     setError('');
@@ -377,8 +401,15 @@ export default function ApplyPage() {
             <Shield className="w-6 h-6 text-[#3b82f6]" />
             <span className="font-bold">TenantIQ</span>
           </Link>
-          <div className="text-sm text-[#64748b]">
-            Step {step + 1} of {STEPS.length}
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-[#64748b]">Step {step + 1} of {STEPS.length}</span>
+            <Link
+              href="/"
+              title="Discard and go back"
+              className="flex items-center justify-center w-8 h-8 rounded-full text-[#64748b] hover:text-white hover:bg-[#334155] transition-all"
+            >
+              <X className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </nav>

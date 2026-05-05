@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Shield, BarChart3, TrendingUp, FileSearch, AlertTriangle, Scale, FileText,
-  CheckCircle, XCircle, AlertCircle, ChevronDown, ChevronUp, Copy, Printer
+  CheckCircle, XCircle, AlertCircle, ChevronDown, ChevronUp, Copy, Printer, Globe
 } from 'lucide-react';
 import { getScoreLabel, getRecommendationStyle, formatDate } from '@/lib/utils';
 
@@ -157,11 +157,10 @@ function ScoreBreakdown({ agentResults }: { agentResults: any }) {
   if (!agentResults) return null;
 
   const bars = [
-    { label: 'Income (30%)', score: agentResults.income?.incomeScore ?? 0, color: '#8b5cf6', weight: 0.30 },
-    { label: 'Rental History (25%)', score: agentResults.rentalHistory?.rentalScore ?? 0, color: '#06b6d4', weight: 0.25 },
-    { label: 'Credit & Financial (20%)', score: agentResults.credit?.creditScore ?? 0, color: '#3b82f6', weight: 0.20 },
-    { label: 'Risk Assessment (15%)', score: agentResults.riskAssessment?.riskScore ?? 0, color: '#f97316', weight: 0.15 },
-    { label: 'App Completeness (10%)', score: 85, color: '#22c55e', weight: 0.10 },
+    { label: 'Income (35%)', score: agentResults.income?.incomeScore ?? 0, color: '#8b5cf6' },
+    { label: 'Rental History (28%)', score: agentResults.rentalHistory?.rentalScore ?? 0, color: '#06b6d4' },
+    { label: 'Credit & Financial (22%)', score: agentResults.credit?.creditScore ?? 0, color: '#3b82f6' },
+    { label: 'Risk Assessment (15%)', score: agentResults.riskAssessment?.riskScore ?? 0, color: '#f97316' },
   ];
 
   return (
@@ -182,6 +181,91 @@ function ScoreBreakdown({ agentResults }: { agentResults: any }) {
                 className="h-full rounded-full transition-all duration-700"
                 style={{ width: `${bar.score}%`, backgroundColor: bar.color }}
               />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function VerificationWidget({ verifications }: { verifications: any }) {
+  if (!verifications) return null;
+
+  type VerifRow = { label: string; note: string; ok: boolean; warn: boolean };
+  const rows: VerifRow[] = [];
+
+  if (verifications.zip) {
+    rows.push({
+      label: 'Address ZIP',
+      note: verifications.zip.note,
+      ok: verifications.zip.valid && !verifications.zip.mismatch,
+      warn: !!verifications.zip.mismatch,
+    });
+  }
+  if (verifications.ofac) {
+    rows.push({
+      label: 'OFAC Sanctions',
+      note: verifications.ofac.note,
+      ok: verifications.ofac.clear,
+      warn: verifications.ofac.matchFound,
+    });
+  }
+  if (verifications.employer) {
+    rows.push({
+      label: 'Employer Check',
+      note: verifications.employer.note,
+      ok: verifications.employer.found,
+      warn: !verifications.employer.found,
+    });
+  }
+
+  // Plaid income row — shown even when not configured
+  const plaid = verifications.plaidIncome;
+  if (plaid) {
+    const plaidOk = plaid.available && plaid.incomeMatch === 'match';
+    const plaidWarn = plaid.available && plaid.incomeMatch === 'discrepancy';
+    rows.push({
+      label: 'Plaid Income (sandbox)',
+      note: plaid.note,
+      ok: plaidOk,
+      warn: plaidWarn,
+    });
+  }
+
+  if (rows.length === 0) return null;
+
+  const alerts = rows.filter(r => r.warn).length;
+
+  return (
+    <div className="bg-[#1e293b] border border-[#334155] rounded-xl p-5">
+      <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+        <Globe className="w-4 h-4 text-[#3b82f6]" />
+        External Verifications
+        {alerts > 0 && (
+          <span className="ml-auto text-xs bg-[#f97316]/20 text-[#f97316] px-2 py-0.5 rounded-full">
+            {alerts} alert{alerts > 1 ? 's' : ''}
+          </span>
+        )}
+      </h4>
+      <div className="space-y-2.5">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-start gap-2">
+            <div className="flex-shrink-0 mt-0.5">
+              {row.warn ? (
+                <AlertCircle className="w-3.5 h-3.5 text-[#f97316]" />
+              ) : row.ok ? (
+                <CheckCircle className="w-3.5 h-3.5 text-[#22c55e]" />
+              ) : (
+                <XCircle className="w-3.5 h-3.5 text-[#64748b]" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <span className={`text-xs font-medium ${row.warn ? 'text-[#f97316]' : row.ok ? 'text-[#22c55e]' : 'text-[#64748b]'}`}>
+                {row.label}
+              </span>
+              <p className="text-xs text-[#64748b] leading-snug mt-0.5">{row.note}</p>
             </div>
           </div>
         ))}
@@ -320,10 +404,10 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
 
             <div className="grid grid-cols-2 gap-4 md:ml-auto">
               {[
-                { label: 'Income Score', value: agentResults?.income?.incomeScore ?? 0, color: '#8b5cf6' },
-                { label: 'Rental Score', value: agentResults?.rentalHistory?.rentalScore ?? 0, color: '#06b6d4' },
-                { label: 'Credit Score', value: agentResults?.credit?.creditScore ?? 0, color: '#3b82f6' },
-                { label: 'Risk Score', value: agentResults?.riskAssessment?.riskScore ?? 0, color: '#f97316' },
+                { label: 'Income Agent', value: agentResults?.income?.incomeScore ?? 0, color: '#8b5cf6' },
+                { label: 'Rental Agent', value: agentResults?.rentalHistory?.rentalScore ?? 0, color: '#06b6d4' },
+                { label: 'Credit Agent', value: agentResults?.credit?.creditScore ?? 0, color: '#3b82f6' },
+                { label: 'Risk Agent', value: agentResults?.riskAssessment?.riskScore ?? 0, color: '#f97316' },
               ].map(item => (
                 <div key={item.label} className="bg-[#0f172a] rounded-xl p-4 text-center min-w-[90px]">
                   <div className="text-2xl font-bold" style={{ color: item.color }}>{item.value}</div>
@@ -359,6 +443,9 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
           <div className="space-y-6">
             <ScoreBreakdown agentResults={agentResults} />
 
+            {/* External verifications */}
+            <VerificationWidget verifications={agentResults?.verifications} />
+
             {/* Compliance */}
             {agentResults?.fairHousing && (
               <div className="bg-[#1e293b] border border-[#334155] rounded-xl p-5">
@@ -366,13 +453,45 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
                   <Scale className="w-4 h-4 text-[#22c55e]" />
                   Fair Housing Status
                 </h4>
-                <div className={`text-sm font-medium px-3 py-1.5 rounded-lg inline-block mb-3 ${
-                  agentResults.fairHousing.complianceStatus === 'compliant'
-                    ? 'bg-[#22c55e]/10 text-[#22c55e]'
-                    : 'bg-[#f97316]/10 text-[#f97316]'
-                }`}>
-                  {agentResults.fairHousing.complianceStatus?.toUpperCase()}
-                </div>
+
+                {/* On DECLINE: show only the adverse action alert, not the COMPLIANT green badge */}
+                {recommendation === 'DECLINE' ? (
+                  <div className="flex items-start gap-2 bg-[#ef4444]/10 border border-[#ef4444]/25 rounded-lg px-3 py-2.5 mb-3">
+                    <AlertCircle className="w-4 h-4 text-[#ef4444] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-[#ef4444] font-semibold mb-0.5">Adverse Action Notice Required</p>
+                      <p className="text-xs text-[#ef4444]/80 leading-snug">
+                        You must notify this applicant in writing of the denial and their rights under the Fair Housing Act.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`text-xs font-semibold px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 mb-3 ${
+                    agentResults.fairHousing.complianceStatus === 'compliant'
+                      ? 'bg-[#22c55e]/10 text-[#22c55e] border border-[#22c55e]/20'
+                      : agentResults.fairHousing.complianceStatus === 'review required'
+                      ? 'bg-[#f97316]/10 text-[#f97316] border border-[#f97316]/20'
+                      : 'bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20'
+                  }`}>
+                    {agentResults.fairHousing.complianceStatus === 'compliant'
+                      ? <CheckCircle className="w-3 h-3" />
+                      : <AlertCircle className="w-3 h-3" />
+                    }
+                    {agentResults.fairHousing.complianceStatus?.toUpperCase()}
+                  </div>
+                )}
+
+                {agentResults.fairHousing.auditFindings?.length > 0 && (
+                  <div className="space-y-1 mb-2">
+                    {agentResults.fairHousing.auditFindings.map((f: string, i: number) => (
+                      <p key={i} className="text-xs text-[#94a3b8] flex items-start gap-1.5">
+                        <CheckCircle className="w-3 h-3 text-[#22c55e] flex-shrink-0 mt-0.5" />
+                        {f}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
                 {agentResults.fairHousing.complianceNotes?.map((note: string, i: number) => (
                   <p key={i} className="text-xs text-[#64748b] mb-1">{note}</p>
                 ))}
