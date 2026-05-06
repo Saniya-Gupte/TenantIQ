@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shield, BarChart3, TrendingUp, FileSearch, AlertTriangle, Scale, FileText, CheckCircle, Loader2, Clock } from 'lucide-react';
 import Link from 'next/link';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 
 const AGENTS = [
   { id: 'credit', name: 'Credit Analysis Agent', icon: BarChart3, desc: 'Analyzing credit history, debt load, and financial risk...', color: '#3b82f6' },
@@ -54,6 +55,7 @@ function persistResult(result: ScreeningResult, appData: { email?: string }) {
 
 export default function ProcessingPage({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const ready = useRequireAuth();
   const [agentStatuses, setAgentStatuses] = useState<Record<string, AgentStatus>>({});
   const [, setCurrentAgentIndex] = useState(-1);
   const [timeRemaining, setTimeRemaining] = useState(60);
@@ -146,6 +148,12 @@ export default function ProcessingPage({ params }: { params: { id: string } }) {
 
   const completedCount = Object.values(agentStatuses).filter(s => s === 'complete').length;
   const progress = (completedCount / AGENTS.length) * 100;
+
+  if (!ready) return (
+    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-[#3b82f6] border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white">

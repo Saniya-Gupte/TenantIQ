@@ -2,8 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Shield, Users, TrendingUp, CheckCircle, XCircle, AlertCircle, ChevronRight, BarChart3, RefreshCw, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Shield, Users, TrendingUp, CheckCircle, XCircle, AlertCircle, ChevronRight, BarChart3, RefreshCw, Trash2, LogOut } from 'lucide-react';
 import { getScoreLabel, formatDate } from '@/lib/utils';
+import { useRequireAuth, signOut } from '@/lib/useRequireAuth';
 
 interface ApplicationRow {
   id: string;
@@ -52,6 +54,8 @@ function RecommendationBadge({ rec }: { rec: string }) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const ready = useRequireAuth();
   const [applications, setApplications] = useState<ApplicationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
@@ -126,6 +130,12 @@ export default function DashboardPage() {
     setDeleting(null);
   }
 
+  if (!ready) return (
+    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-[#3b82f6] border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-white">
       <nav className="border-b border-[#1e293b] px-6 py-4">
@@ -134,13 +144,22 @@ export default function DashboardPage() {
             <Shield className="w-6 h-6 text-[#3b82f6]" />
             <span className="font-bold">TenantIQ</span>
           </Link>
-          <Link
-            href="/setup"
-            className="flex items-center gap-2 bg-[#3b82f6] hover:bg-[#2563eb] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            <Shield className="w-4 h-4" />
-            New Screening
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/setup"
+              className="flex items-center gap-2 bg-[#3b82f6] hover:bg-[#2563eb] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              <Shield className="w-4 h-4" />
+              New Screening
+            </Link>
+            <button
+              onClick={() => signOut(router)}
+              className="flex items-center gap-2 px-4 py-2 bg-[#1e293b] border border-[#334155] rounded-lg text-sm text-[#94a3b8] hover:text-white hover:border-[#475569] transition-all"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
+          </div>
         </div>
       </nav>
 

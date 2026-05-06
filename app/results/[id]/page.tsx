@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Shield, BarChart3, TrendingUp, FileSearch, AlertTriangle, Scale, FileText,
-  CheckCircle, XCircle, AlertCircle, ChevronDown, ChevronUp, Copy, Printer, Globe
+  CheckCircle, XCircle, AlertCircle, ChevronDown, ChevronUp, Copy, Printer, Globe, LogOut
 } from 'lucide-react';
 import { getScoreLabel, getRecommendationStyle, formatDate } from '@/lib/utils';
+import { useRequireAuth, signOut } from '@/lib/useRequireAuth';
 
 interface AgentCard {
   key: string;
@@ -267,6 +269,8 @@ function VerificationWidget({ verifications }: { verifications: any }) {
 }
 
 export default function ResultsPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const ready = useRequireAuth();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -312,6 +316,12 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
+
+  if (!ready) return (
+    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-[#3b82f6] border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   if (loading) {
     return (
@@ -371,6 +381,13 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             <Link href="/dashboard" className="text-sm text-[#64748b] hover:text-white transition-colors">
               Dashboard
             </Link>
+            <button
+              onClick={() => signOut(router)}
+              className="flex items-center gap-1.5 text-sm text-[#64748b] hover:text-white transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
           </div>
         </div>
       </nav>

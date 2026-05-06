@@ -1,14 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Shield, Copy, Check, DollarSign, Link2, UserCheck, Send, ArrowRight } from 'lucide-react';
+import { Shield, Copy, Check, DollarSign, Link2, UserCheck, Send, ArrowRight, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useRequireAuth, signOut } from '@/lib/useRequireAuth';
 
 export default function SetupPage() {
+  const router = useRouter();
+  const ready = useRequireAuth();
   const [rent, setRent] = useState('');
   const [copied, setCopied] = useState(false);
-  const router = useRouter();
 
   const rentNum = Number(rent);
   const isValid = rentNum > 0;
@@ -26,6 +28,12 @@ export default function SetupPage() {
     router.push(`/apply?rent=${rentNum}`);
   }
 
+  if (!ready) return (
+    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-[#3b82f6] border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-white">
       <nav className="border-b border-[#1e293b] px-6 py-4">
@@ -34,9 +42,18 @@ export default function SetupPage() {
             <Shield className="w-6 h-6 text-[#3b82f6]" />
             <span className="font-bold">TenantIQ</span>
           </Link>
-          <Link href="/dashboard" className="text-sm text-[#64748b] hover:text-white transition-colors">
-            Dashboard
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard" className="text-sm text-[#64748b] hover:text-white transition-colors">
+              Dashboard
+            </Link>
+            <button
+              onClick={() => signOut(router)}
+              className="flex items-center gap-1.5 text-sm text-[#64748b] hover:text-white transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
+          </div>
         </div>
       </nav>
 
