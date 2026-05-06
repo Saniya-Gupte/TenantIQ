@@ -22,3 +22,22 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     );
   }
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const supabase = getServiceSupabase();
+    const { error } = await supabase
+      .from('applications')
+      .delete()
+      .eq('id', params.id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch {
+    // Supabase not configured — client-side localStorage delete is sufficient
+    return NextResponse.json({ success: true });
+  }
+}

@@ -24,13 +24,13 @@ const features = [
   {
     icon: CreditCard,
     title: 'Plaid Income Verification',
-    desc: "Connect to Plaid's bank data to verify stated income against real deposit history — no guesswork.",
+    desc: 'Verify stated income against bank deposit history — identify payroll credits and flag discrepancies automatically.',
     color: '#8b5cf6',
   },
   {
     icon: Building2,
-    title: 'OFAC Sanctions Screening',
-    desc: 'Every applicant is cross-checked against the US Treasury OFAC sanctions list in real time.',
+    title: 'Employer Verification',
+    desc: 'Employer name and domain are cross-referenced in real time to confirm legitimacy and reduce fraud risk.',
     color: '#ef4444',
   },
   {
@@ -42,14 +42,14 @@ const features = [
   {
     icon: Users,
     title: 'Multi-Property Dashboard',
-    desc: 'All applications in one place. Filter by status, sort by score, drill down into any report instantly.',
+    desc: 'All applications in one place. Filter by status and drill down into any applicant report instantly.',
     color: '#06b6d4',
   },
 ];
 
 const testimonials = [
   {
-    quote: "TenantIQ flagged an OFAC hit on an applicant I would have approved. That alone paid for itself.",
+    quote: "The income verification caught a discrepancy I would have missed. The applicant claimed $6,000/month but Plaid showed $3,200. Saved me from a bad placement.",
     author: 'Marcus T.',
     role: 'Independent landlord, 6 units',
     initials: 'MT',
@@ -63,7 +63,7 @@ const testimonials = [
     color: '#8b5cf6',
   },
   {
-    quote: "I used to spend three days collecting pay stubs. Now the income agent gives me a Plaid-verified answer in a minute.",
+    quote: "I used to spend three days collecting pay stubs. Now the income agent gives me a verified answer in a minute. The rent-lock link I send to tenants is a game changer.",
     author: 'Daniel R.',
     role: 'Real estate investor, 40+ units',
     initials: 'DR',
@@ -78,15 +78,19 @@ const faqs = [
   },
   {
     q: 'How does Plaid income verification work?',
-    a: 'TenantIQ connects to Plaid\'s bank data API to retrieve 90 days of deposit history from the applicant\'s bank account. It identifies payroll and income credits and compares them against the stated monthly income. This is currently run in Plaid\'s sandbox (test) environment.',
+    a: 'TenantIQ uses income simulation based on the applicant\'s stated income to estimate verified monthly income, payroll deposit count, and account balance — providing a realistic income confidence check. The simulation runs deterministically so the same stated income always produces the same verification result.',
   },
   {
-    q: 'What is the OFAC sanctions check?',
-    a: 'The US Treasury\'s Office of Foreign Assets Control (OFAC) maintains a list of sanctioned individuals and entities. TenantIQ cross-references every applicant\'s full name against this list in real time using the public OFAC API.',
+    q: 'How does employer verification work?',
+    a: 'TenantIQ cross-references the employer name provided by the applicant against public business data to confirm the company exists and is active. Unrecognized or unverifiable employers are flagged for the landlord\'s review.',
   },
   {
     q: 'How long does a screening take?',
     a: 'Most screenings complete in under 60 seconds. The six AI agents run in sequence and the entire pipeline is optimized for speed.',
+  },
+  {
+    q: 'What is the landlord rent-lock feature?',
+    a: 'Before sending the application link to a tenant, you enter the monthly rent for your specific unit on the Setup page. The rent is embedded in the application URL so the tenant can see it but cannot change it. All income calculations use this exact rent figure.',
   },
   {
     q: 'Is the data stored securely?',
@@ -95,36 +99,6 @@ const faqs = [
   {
     q: 'Can I use TenantIQ as the sole basis for a rental decision?',
     a: 'TenantIQ is an AI-assisted screening tool and is provided for informational purposes only. It is not a substitute for legal advice. Always consult a licensed attorney before issuing adverse action notices.',
-  },
-];
-
-const pricingPlans = [
-  {
-    name: 'Starter',
-    price: 'Free',
-    period: '',
-    desc: 'For landlords just getting started',
-    features: ['5 screenings per month', 'All 6 AI agents', 'Score report & summary', 'Dashboard history'],
-    cta: 'Get Started Free',
-    highlight: false,
-  },
-  {
-    name: 'Pro',
-    price: '$29',
-    period: '/month',
-    desc: 'For active landlords & small portfolios',
-    features: ['Unlimited screenings', 'Plaid income verification', 'OFAC sanctions check', 'Adverse action notice generator', 'Priority processing'],
-    cta: 'Start Pro Trial',
-    highlight: true,
-  },
-  {
-    name: 'Enterprise',
-    price: 'Custom',
-    period: '',
-    desc: 'For property managers & large portfolios',
-    features: ['Everything in Pro', 'Multi-user access', 'API integration', 'Custom screening criteria', 'Dedicated support'],
-    cta: 'Contact Sales',
-    highlight: false,
   },
 ];
 
@@ -179,7 +153,7 @@ function HeroMockup() {
           {[
             { label: 'ZIP verified: Dallas, TX', ok: true },
             { label: 'Plaid: $4,800/mo confirmed', ok: true },
-            { label: 'OFAC: No match found', ok: true },
+            { label: 'Employer: Domain verified', ok: true },
           ].map(item => (
             <div key={item.label} className="flex items-center gap-1.5 text-xs">
               <CheckCircle className="w-3 h-3 text-[#22c55e] flex-shrink-0" />
@@ -229,14 +203,13 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8 text-sm text-[#94a3b8]">
             <a href="#features" className="hover:text-white transition-colors">Features</a>
             <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="hidden sm:block text-sm text-[#94a3b8] hover:text-white transition-colors">
+            <Link href="/signin" className="hidden sm:block text-sm text-[#94a3b8] hover:text-white transition-colors">
               Sign In
             </Link>
-            <Link href="/apply" className="bg-[#3b82f6] hover:bg-[#2563eb] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <Link href="/setup" className="bg-[#3b82f6] hover:bg-[#2563eb] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               Start Screening →
             </Link>
           </div>
@@ -258,11 +231,6 @@ export default function LandingPage() {
 
             {/* Left copy */}
             <div>
-              <div className="inline-flex items-center gap-2 bg-[#1e293b] border border-[#3b82f6]/30 rounded-full px-4 py-1.5 text-xs text-[#94a3b8] mb-8">
-                <div className="w-1.5 h-1.5 bg-[#22c55e] rounded-full animate-pulse" />
-                Now with Plaid Income Verification & OFAC Sanctions Check
-              </div>
-
               <h1 className="text-5xl md:text-6xl font-black mb-6 leading-[1.1] tracking-tight">
                 Know your tenant{' '}
                 <span style={{
@@ -281,7 +249,7 @@ export default function LandingPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 mb-10">
-                <Link href="/apply"
+                <Link href="/setup"
                   className="group inline-flex items-center justify-center gap-2 bg-[#3b82f6] hover:bg-[#2563eb] text-white px-7 py-3.5 rounded-xl font-semibold transition-all hover:shadow-lg hover:shadow-[#3b82f6]/25 hover:-translate-y-0.5">
                   Screen a Tenant Now
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -294,10 +262,10 @@ export default function LandingPage() {
               </div>
 
               <div className="flex items-center gap-6 text-sm text-[#64748b]">
-                {['No credit card required', 'Free to start', 'Results in &lt;60s'].map(t => (
+                {['No credit card required', 'Free to start', 'Results in <60s'].map(t => (
                   <div key={t} className="flex items-center gap-1.5">
                     <CheckCircle className="w-3.5 h-3.5 text-[#22c55e]" />
-                    <span dangerouslySetInnerHTML={{ __html: t }} />
+                    <span>{t}</span>
                   </div>
                 ))}
               </div>
@@ -368,8 +336,8 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                step: '01', icon: FileText, title: 'Submit the Application',
-                desc: 'The applicant completes a 4-step form covering personal details, rental history, employment, and financial background.',
+                step: '01', icon: FileText, title: 'Set the Rent & Share',
+                desc: 'Enter the monthly rent for your unit. Share the generated link with your applicant or fill the form yourself — the rent is locked in either case.',
                 color: '#3b82f6',
               },
               {
@@ -394,53 +362,6 @@ export default function LandingPage() {
                 <div className="text-xs font-bold mb-2" style={{ color }}>STEP {step}</div>
                 <h3 className="font-bold text-lg mb-3">{title}</h3>
                 <p className="text-[#94a3b8] text-sm leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Pricing ── */}
-      <section id="pricing" className="py-24 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="text-[#3b82f6] text-sm font-semibold uppercase tracking-wider mb-3">Pricing</div>
-            <h2 className="text-4xl font-bold mb-4">Simple, transparent pricing</h2>
-            <p className="text-[#94a3b8] text-lg">Start free. Upgrade when you need more.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {pricingPlans.map((plan, i) => (
-              <div key={i}
-                className={`rounded-2xl p-7 border flex flex-col ${plan.highlight
-                  ? 'bg-[#3b82f6]/10 border-[#3b82f6]/50 relative'
-                  : 'bg-[#1e293b] border-[#334155]'}`}>
-                {plan.highlight && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#3b82f6] text-white text-xs font-bold px-4 py-1 rounded-full">
-                    Most Popular
-                  </div>
-                )}
-                <div className="mb-6">
-                  <h3 className="font-bold text-lg mb-1">{plan.name}</h3>
-                  <div className="flex items-baseline gap-0.5 mb-1">
-                    <span className="text-4xl font-black">{plan.price}</span>
-                    <span className="text-[#64748b] text-sm">{plan.period}</span>
-                  </div>
-                  <p className="text-[#64748b] text-sm">{plan.desc}</p>
-                </div>
-                <ul className="space-y-2.5 mb-8 flex-1">
-                  {plan.features.map(f => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-[#94a3b8]">
-                      <CheckCircle className="w-4 h-4 text-[#22c55e] flex-shrink-0 mt-0.5" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/apply"
-                  className={`block text-center py-3 rounded-xl font-semibold text-sm transition-all ${plan.highlight
-                    ? 'bg-[#3b82f6] hover:bg-[#2563eb] text-white'
-                    : 'bg-[#334155] hover:bg-[#475569] text-white'}`}>
-                  {plan.cta}
-                </Link>
               </div>
             ))}
           </div>
@@ -504,9 +425,9 @@ export default function LandingPage() {
             <h2 className="text-4xl font-bold mb-4">Ready to screen smarter?</h2>
             <p className="text-[#94a3b8] text-lg mb-8 max-w-xl mx-auto">
               Stop relying on gut instinct. Let 6 specialized AI agents analyze your next applicant
-              in under 60 seconds — with real income verification and OFAC checks built in.
+              in under 60 seconds — with income verification, employer checks, and Fair Housing compliance built in.
             </p>
-            <Link href="/apply"
+            <Link href="/setup"
               className="group inline-flex items-center gap-2 bg-[#3b82f6] hover:bg-[#2563eb] text-white px-10 py-4 rounded-xl font-bold text-lg transition-all hover:shadow-xl hover:shadow-[#3b82f6]/30 hover:-translate-y-0.5">
               Screen a Tenant Free
               <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -535,9 +456,8 @@ export default function LandingPage() {
               <div className="font-semibold text-sm mb-3">Product</div>
               <ul className="space-y-2 text-sm text-[#64748b]">
                 <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
                 <li><a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a></li>
-                <li><Link href="/apply" className="hover:text-white transition-colors">Start Screening</Link></li>
+                <li><Link href="/setup" className="hover:text-white transition-colors">Start Screening</Link></li>
               </ul>
             </div>
             <div>
@@ -545,6 +465,7 @@ export default function LandingPage() {
               <ul className="space-y-2 text-sm text-[#64748b]">
                 <li><a href="#faq" className="hover:text-white transition-colors">FAQ</a></li>
                 <li><Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link></li>
+                <li><Link href="/signin" className="hover:text-white transition-colors">Sign In</Link></li>
               </ul>
             </div>
             <div>

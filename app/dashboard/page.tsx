@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Shield, Users, TrendingUp, CheckCircle, XCircle, AlertCircle, ChevronRight, BarChart3, RefreshCw } from 'lucide-react';
+import { Shield, Users, TrendingUp, CheckCircle, XCircle, AlertCircle, ChevronRight, BarChart3, RefreshCw, Trash2 } from 'lucide-react';
 import { getScoreLabel, formatDate } from '@/lib/utils';
 
 interface ApplicationRow {
@@ -57,6 +57,8 @@ export default function DashboardPage() {
   const [filter, setFilter] = useState<string>('all');
   const [dbStatus, setDbStatus] = useState<'ok' | 'error' | 'unknown'>('unknown');
   const [dbError, setDbError] = useState('');
+  const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const loadApplications = useCallback(async () => {
     setLoading(true);
@@ -105,6 +107,25 @@ export default function DashboardPage() {
     : 0;
   const approvalRate = totalApps > 0 ? Math.round((approvedApps / totalApps) * 100) : 0;
 
+  async function handleDelete(id: string) {
+    setDeleting(id);
+    // Remove from localStorage immediately
+    try {
+      const existing: ApplicationRow[] = JSON.parse(localStorage.getItem('tenantiq_applications') || '[]');
+      localStorage.setItem('tenantiq_applications', JSON.stringify(existing.filter(a => a.id !== id)));
+      localStorage.removeItem(`tenantiq_result_${id}`);
+    } catch { /* ignore */ }
+
+    // Best-effort delete from Supabase
+    try {
+      await fetch(`/api/applications/${id}`, { method: 'DELETE' });
+    } catch { /* ignore — local delete already done */ }
+
+    setApplications(prev => prev.filter(a => a.id !== id));
+    setConfirmingDelete(null);
+    setDeleting(null);
+  }
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-white">
       <nav className="border-b border-[#1e293b] px-6 py-4">
@@ -114,7 +135,7 @@ export default function DashboardPage() {
             <span className="font-bold">TenantIQ</span>
           </Link>
           <Link
-            href="/apply"
+            href="/setup"
             className="flex items-center gap-2 bg-[#3b82f6] hover:bg-[#2563eb] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             <Shield className="w-4 h-4" />
@@ -214,7 +235,7 @@ export default function DashboardPage() {
               </p>
               {filter === 'all' && (
                 <Link
-                  href="/apply"
+                  href="/setup"
                   className="inline-flex items-center gap-2 bg-[#3b82f6] hover:bg-[#2563eb] text-white px-6 py-3 rounded-xl font-medium transition-all"
                 >
                   Screen Your First Tenant
@@ -227,8 +248,8 @@ export default function DashboardPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[#334155]">
-                    {['Applicant', 'Submitted', 'Score', 'Recommendation', 'Status', ''].map(h => (
-                      <th key={h} className="text-left text-xs font-semibold text-[#475569] uppercase tracking-wider px-6 py-4">
+                    {['Applicant', 'Submitted', 'Score', 'Recommendation', 'Status', '', ''].map((h, i) => (
+                      <th key={i} className="text-left text-xs font-semibold text-[#475569] uppercase tracking-wider px-6 py-4">
                         {h}
                       </th>
                     ))}
@@ -237,8 +258,10 @@ export default function DashboardPage() {
                 <tbody className="divide-y divide-[#334155]">
                   {filtered.map(app => {
                     const scoreInfo = getScoreLabel(app.overall_score);
+                    const isConfirming = confirmingDelete === app.id;
+                    const isDeleting = deleting === app.id;
                     return (
-                      <tr key={app.id} className="hover:bg-[#334155]/20 transition-colors group cursor-pointer">
+                      <tr key={app.id} className="hover:bg-[#334155]/20 transition-colors group">
                         <td className="px-6 py-4">
                           <div className="font-medium text-sm">{app.applicant_name}</div>
                           <div className="text-xs text-[#64748b]">{app.applicant_email}</div>
@@ -272,6 +295,33 @@ export default function DashboardPage() {
                             View Report
                             <ChevronRight className="w-4 h-4" />
                           </Link>
+                        </td>
+                        <td className="px-6 py-4">
+                          {isConfirming ? (
+                            <div className="flex items-center gap-2 whitespace-nowrap">
+                              <button
+                                onClick={() => handleDelete(app.id)}
+                                disabled={isDeleting}
+                                className="text-xs bg-[#ef4444]/15 text-[#ef4444] border border-[#ef4444]/30 hover:bg-[#ef4444]/25 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                {isDeleting ? 'Deleting…' : 'Confirm'}
+                              </button>
+                              <button
+                                onClick={() => setConfirmingDelete(null)}
+                                className="text-xs text-[#64748b] hover:text-white transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmingDelete(app.id)}
+                              className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-lg text-[#475569] hover:text-[#ef4444] hover:bg-[#ef4444]/10"
+                              title="Delete application"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );

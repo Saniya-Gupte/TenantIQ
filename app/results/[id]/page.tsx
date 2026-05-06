@@ -204,14 +204,6 @@ function VerificationWidget({ verifications }: { verifications: any }) {
       warn: !!verifications.zip.mismatch,
     });
   }
-  if (verifications.ofac) {
-    rows.push({
-      label: 'OFAC Sanctions',
-      note: verifications.ofac.note,
-      ok: verifications.ofac.clear,
-      warn: verifications.ofac.matchFound,
-    });
-  }
   if (verifications.employer) {
     rows.push({
       label: 'Employer Check',

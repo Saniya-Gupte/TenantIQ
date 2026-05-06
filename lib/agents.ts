@@ -53,7 +53,7 @@ function calcCreditFallback(appData: any): number {
   const debt = (Number(appData.monthlyDebtPayments) || 0) + (Number(appData.monthlyCarPayment) || 0);
   if (debt / income > 0.4) score -= 15;
   else if (debt / income < 0.15) score += 5;
-  return clamp(score);
+  return Math.max(15, clamp(score));
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -79,7 +79,7 @@ function calcIncomeFallback(appData: any): number {
   else if (years >= 1) score += 3;
   else if (years < 0.5 && appData.employmentStatus === 'employed') score -= 8;
 
-  return clamp(score);
+  return Math.max(15, clamp(score));
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -97,7 +97,7 @@ function calcRentalFallback(appData: any): number {
   else if (years < 0.5) score -= 10;
 
   if (appData.previousLandlordName) score += 5;
-  return clamp(score);
+  return Math.max(15, clamp(score));
 }
 
 // ---------------------------------------------------------------------------
@@ -170,7 +170,6 @@ export async function runCreditAgent(appData: any, verifications?: AllVerificati
   const verificationContext = verifications ? `
 Verified external data:
 - Address ZIP: ${verifications.zip.note}${verifications.zip.mismatch ? ' ⚠️ State mismatch — possible address fabrication' : ''}
-- OFAC sanctions check: ${verifications.ofac.note}${verifications.ofac.matchFound ? ' ⚠️ POTENTIAL MATCH — treat as major red flag' : ''}
 ` : '';
 
   const prompt = `You are a Credit Analysis Agent for a tenant screening platform. Analyze the applicant's financial background and return a JSON object. Do NOT include any explanation, markdown, or extra text — return ONLY the raw JSON object.
@@ -185,12 +184,12 @@ Applicant data:
 - Ever broke lease early: ${appData.brokeLeaseEarly}${appData.leaseBreakExplanation ? ' — ' + appData.leaseBreakExplanation : ''}
 ${verificationContext}
 
-Scoring guide:
+Scoring guide (scores MUST stay within these ranges — never below 15):
 - Excellent credit, no eviction, no bankruptcy, low debt → creditScore 80-100
 - Good credit, no issues → creditScore 70-85
-- Fair credit or moderate debt → creditScore 55-70
-- Poor credit OR eviction OR bankruptcy → creditScore 30-55
-- Multiple serious issues → creditScore below 40
+- Fair credit or moderate debt → creditScore 55-69
+- Poor credit OR eviction OR bankruptcy → creditScore 30-54
+- Multiple serious issues (poor credit + eviction + bankruptcy) → creditScore 15-29
 
 Return exactly this JSON (fill in real values, no placeholders):
 {
@@ -204,7 +203,7 @@ Return exactly this JSON (fill in real values, no placeholders):
     const text = await callGemini(prompt);
     const parsed = parseJSON(text) as Record<string, unknown>;
     return {
-      creditScore: clamp(parsed.creditScore),
+      creditScore: Math.max(15, clamp(parsed.creditScore)),
       findings: ensureStringArray(parsed.findings),
       redFlags: ensureStringArray(parsed.redFlags),
       mitigatingFactors: ensureStringArray(parsed.mitigatingFactors),
@@ -230,7 +229,7 @@ Return exactly this JSON (fill in real values, no placeholders):
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function runIncomeAgent(appData: any, verifications?: AllVerifications | null): Promise<IncomeAgentResult> {
-  const assumedRent = 2000;
+  const assumedRent = Number(appData.monthlyRent) || 2000;
   const grossIncome = Number(appData.monthlyGrossIncome) || 0;
   const additionalIncome = Number(appData.additionalIncomeAmount) || 0;
   const totalIncome = grossIncome + additionalIncome;
@@ -256,12 +255,14 @@ Applicant data:
 - Rent-to-income ratio: ${ratioPercent}% (industry standard: under 30% is ideal, under 33% is acceptable)
 ${verificationContext}
 
-Scoring guide:
+Scoring guide (scores MUST stay within these ranges — never below 15):
 - Ratio ≤ 25% and stable employment → incomeScore 85-100
 - Ratio 26-30% → incomeScore 75-84
 - Ratio 31-33% → incomeScore 65-74
 - Ratio 34-40% → incomeScore 50-64
-- Ratio > 40% or unemployed → incomeScore below 50
+- Ratio 41-55% → incomeScore 35-49
+- Ratio > 55% or unemployed with some income → incomeScore 20-34
+- Unemployed with zero income → incomeScore 15-22
 
 Return exactly this JSON (all values must be real numbers, not placeholders):
 {
@@ -275,7 +276,7 @@ Return exactly this JSON (all values must be real numbers, not placeholders):
     const text = await callGemini(prompt);
     const parsed = parseJSON(text) as Record<string, unknown>;
     return {
-      incomeScore: clamp(parsed.incomeScore),
+      incomeScore: Math.max(15, clamp(parsed.incomeScore)),
       rentToIncomeRatio: Number(parsed.rentToIncomeRatio) || ratio,
       findings: ensureStringArray(parsed.findings),
       redFlags: ensureStringArray(parsed.redFlags),
@@ -316,12 +317,12 @@ Applicant data:
 - Ever broke lease early: ${appData.brokeLeaseEarly}${appData.leaseBreakExplanation ? ' — ' + appData.leaseBreakExplanation : ''}
 ${verificationContext}
 
-Scoring guide:
+Scoring guide (scores MUST stay within these ranges — never below 15):
 - No eviction, no lease break, tenancy ≥ 2 years → rentalScore 80-100
 - No eviction, minor issues or short tenancy → rentalScore 65-79
-- Lease break with explanation → rentalScore 50-65
-- Eviction with good explanation → rentalScore 35-50
-- Eviction without good explanation → rentalScore below 35
+- Lease break with explanation → rentalScore 50-64
+- Eviction with good explanation → rentalScore 35-49
+- Eviction without explanation OR eviction + lease break → rentalScore 15-34
 
 Return exactly this JSON:
 {
@@ -335,7 +336,7 @@ Return exactly this JSON:
     const text = await callGemini(prompt);
     const parsed = parseJSON(text) as Record<string, unknown>;
     return {
-      rentalScore: clamp(parsed.rentalScore),
+      rentalScore: Math.max(15, clamp(parsed.rentalScore)),
       findings: ensureStringArray(parsed.findings),
       redFlags: ensureStringArray(parsed.redFlags),
       tenancyStability: String(parsed.tenancyStability || 'moderate'),
@@ -365,7 +366,6 @@ Return exactly this JSON:
 export async function runRiskAssessmentAgent(appData: any, creditResult: CreditAgentResult, incomeResult: IncomeAgentResult, rentalResult: RentalHistoryAgentResult, verifications?: AllVerifications | null): Promise<RiskAssessmentAgentResult> {
   const verificationFlags: string[] = [];
   if (verifications) {
-    if (verifications.ofac.matchFound) verificationFlags.push('OFAC sanctions list potential match');
     if (verifications.zip.mismatch) verificationFlags.push('Address ZIP code state mismatch');
     if (verifications.employer && !verifications.employer.found && appData.employmentStatus !== 'unemployed') verificationFlags.push('Stated employer not found in business registry');
     if (verifications.plaidIncome.incomeMatch === 'discrepancy') verificationFlags.push(`Plaid income discrepancy: stated vs verified differ by $${verifications.plaidIncome.discrepancyAmount?.toLocaleString()}`);
@@ -389,11 +389,13 @@ Additional applicant data:
 - Desired lease term: ${appData.desiredLeaseTerm} months
 - Pending bankruptcy: ${appData.pendingBankruptcy}
 
-Scoring guide: derive riskScore as a weighted synthesis (do NOT just average the three scores):
+Scoring guide (scores MUST stay within these ranges — never below 15):
+Derive riskScore as a weighted synthesis, not a simple average:
 - All scores ≥ 80, no red flags → riskScore 85-100, riskLevel "low"
 - Mixed strong/moderate scores → riskScore 65-84, riskLevel "moderate"
 - One or more scores < 60 or serious red flags → riskScore 45-64, riskLevel "high"
-- Multiple serious red flags → riskScore below 45, riskLevel "very high"
+- Multiple serious red flags (2+ severe issues) → riskScore 30-44, riskLevel "very high"
+- Catastrophic profile (eviction + bankruptcy + unemployed + poor credit) → riskScore 15-29, riskLevel "very high"
 
 Return exactly this JSON:
 {
@@ -407,7 +409,7 @@ Return exactly this JSON:
     const text = await callGemini(prompt);
     const parsed = parseJSON(text) as Record<string, unknown>;
     return {
-      riskScore: clamp(parsed.riskScore),
+      riskScore: Math.max(15, clamp(parsed.riskScore)),
       riskLevel: String(parsed.riskLevel || 'moderate'),
       findings: ensureStringArray(parsed.findings),
       recommendations: ensureStringArray(parsed.recommendations),
@@ -417,7 +419,7 @@ Return exactly this JSON:
     const avgScore = Math.round((creditResult.creditScore + incomeResult.incomeScore + rentalResult.rentalScore) / 3);
     const allRedFlags = [...creditResult.redFlags, ...incomeResult.redFlags, ...rentalResult.redFlags];
     return {
-      riskScore: clamp(avgScore - (allRedFlags.length * 5)),
+      riskScore: Math.max(15, clamp(avgScore - (allRedFlags.length * 5))),
       riskLevel: avgScore >= 80 ? 'low' : avgScore >= 65 ? 'moderate' : avgScore >= 45 ? 'high' : 'very high',
       findings: [
         `Composite score from credit (${creditResult.creditScore}), income (${incomeResult.incomeScore}), rental (${rentalResult.rentalScore})`,

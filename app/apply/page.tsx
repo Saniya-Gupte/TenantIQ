@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Shield, ChevronRight, ChevronLeft, User, Home, Briefcase, CreditCard, Loader2, AlertCircle, X } from 'lucide-react';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Shield, ChevronRight, ChevronLeft, User, Home, Briefcase, CreditCard, Loader2, AlertCircle, X, Lock } from 'lucide-react';
 import Link from 'next/link';
 
 const STEPS = ['Personal Info', 'Rental History', 'Employment & Income', 'Financial History'];
@@ -319,7 +319,11 @@ function Step4({ form, update }: { form: FormData; update: (k: keyof FormData, v
 
 const stepIcons = [User, Home, Briefcase, CreditCard];
 
-export default function ApplyPage() {
+function ApplyForm() {
+  const searchParams = useSearchParams();
+  const rentParam = searchParams.get('rent');
+  const lockedRent = rentParam ? Number(rentParam) : null;
+
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(initialForm);
   const [submitting, setSubmitting] = useState(false);
@@ -365,9 +369,8 @@ export default function ApplyPage() {
     setSubmitting(true);
 
     try {
-      // Store form data in sessionStorage for the processing page
-      sessionStorage.setItem('pendingApplication', JSON.stringify(form));
-      // Generate a temporary ID for the processing page
+      const payload = { ...form, ...(lockedRent ? { monthlyRent: String(lockedRent) } : {}) };
+      sessionStorage.setItem('pendingApplication', JSON.stringify(payload));
       const tempId = Date.now().toString();
       router.push(`/processing/${tempId}`);
     } catch {
@@ -422,6 +425,20 @@ export default function ApplyPage() {
             All information is self-reported for demonstration purposes. Real deployments connect to credit bureaus and background check APIs.
           </p>
         </div>
+
+        {/* Locked rent banner */}
+        {lockedRent && (
+          <div className="flex items-center justify-between bg-[#3b82f6]/10 border border-[#3b82f6]/30 rounded-xl px-5 py-3.5 mb-6">
+            <div className="flex items-center gap-2.5">
+              <Lock className="w-4 h-4 text-[#3b82f6] flex-shrink-0" />
+              <div>
+                <span className="text-[#94a3b8] text-sm">Monthly rent for this unit: </span>
+                <span className="text-white font-bold text-sm">${lockedRent.toLocaleString()}/month</span>
+              </div>
+            </div>
+            <span className="text-xs text-[#64748b] bg-[#1e293b] px-2 py-1 rounded-full">Set by landlord</span>
+          </div>
+        )}
 
         {/* Progress bar */}
         <div className="mb-8">
@@ -512,5 +529,17 @@ export default function ApplyPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function ApplyPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#3b82f6] border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <ApplyForm />
+    </Suspense>
   );
 }
